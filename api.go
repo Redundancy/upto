@@ -92,14 +92,19 @@ func getContextItem(w rest.ResponseWriter, req *rest.Request) {
 			Events: []Event{
 				{
 					Name:  "File Copy",
-					Host:  "Megacity1",
+					Host:  "10.1.1.345",
 					Start: now,
 					End:   now.Add(time.Minute),
 				},
 				{
-					Name:  "DB Update",
+					Name:  "DB Update.Proc1",
 					Start: now,
 					End:   now.Add(time.Minute * 5),
+				},
+				{
+					Name:  "DB Update.Proc2",
+					Start: now.Add(time.Minute * 5),
+					End:   now.Add(time.Minute*5 + (time.Second * 15)),
 				},
 				{
 					Name:  "Server Start",

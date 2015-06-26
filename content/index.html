@@ -18,7 +18,11 @@
         gantt.config.scale_unit = "minute";
         gantt.config.date_scale = "%H:%i";
         gantt.config.show_task_cells = false;
-        gantt.config.show_grid = false;
+        //gantt.config.show_grid = false;
+        gantt.config.columns = [
+            {name:"text",       label:"Task name",  width:"*", tree:true },
+        ];
+
         gantt.config.readonly = true;
         gantt.config.drag_links = false;
 
@@ -29,38 +33,90 @@
         gantt.config.start_date = new Date();
         gantt.config.end_date = addMinutes(new Date(), 20);
 
-        //gantt.config.autosize = "xy";
+        //gantt.config.autosize = "y";
+
         gantt.config.subscales = [
             {unit:"day", step:1, date:"%D %M %d" }
         ];
 
         gantt.templates.tooltip_text = function(start,end,task){
-            return "<b>Task:</b> "+task.text+"<br/><b>Duration:</b> " + (task.custom_duration / 1000) + "s";
+            return  "<b>Task:</b> " + task.text + "<br/>" +
+                    "<b>Duration:</b> " + ((task.end_date - task.start_date) / 1000) + "s<br/>" +
+                    "<b>Start:</b> " + task.start_date + "<br/>" +
+                    "<b>End:</b> " + task.end_date + "<br/>";
         };
 
         gantt.init("gantt_here");
 
+        var tasks = {};
+
         $.getJSON( "/api/contexts/server_startup/1", function( data ) {
-            var i = 0;
+            var taskID = 1;
 
             var arrayLength = data.Events.length;
             for (var i = 0; i < arrayLength; i++) {
                 var e = data.Events[i];
-
                 var name = e.Name;
+                var parent = undefined;
+
+                if( name.includes(".") ) {
+                    //  {id:1, text:"Project #1",    type:gantt.config.types.project,    open:true}
+                    var heirarchy = name.split(".");
+                    var heirarchyLength = heirarchy.length;
+                    var lastParent = undefined;
+                    for (var x = 0; x < heirarchyLength-1; x++) {
+                        var parentName = heirarchy.slice(0,x+1).join(".");
+
+                        if (parentName in tasks) {
+                            lastParent = tasks[parentName];
+                            parent = lastParent;
+                            continue;
+                        } else {
+                            newParent = {
+                                id:     taskID,
+                                text:   heirarchy[x],
+                                type:   gantt.config.types.project,
+                                open:   true,
+                                color:  "blue"
+                            };
+
+                            if (lastParent !== undefined) {
+                                newParent["parent"] = lastParent.id;
+                            }
+
+                            gantt.addTask(newParent);
+                            tasks[parentName] = newParent.id;
+                            lastParent = newParent;
+                            taskID += 1;
+                            parent = lastParent.id;
+                        }
+                    }
+
+                    name = heirarchy[heirarchyLength-1];
+                }
+
                 if (e.Host !== "" && e.Host !== undefined) {
                     name += " (" + e.Host + ")";
                 }
 
                 var start =  Date.parse(e.Start);
                 var end = Date.parse(e.End);
-                gantt.addTask({
-                    id: i+1,
+
+                var newTask = {
+                    id: taskID,
                     text: name,
                     start_date: start,
                     end_date:  end,
                     custom_duration: end-start
-                });
+                };
+
+                taskID += 1;
+
+                if (parent !== undefined) {
+                    newTask["parent"] = parent;
+                }
+                tasks[name] = newTask.id;
+                gantt.addTask(newTask);
             }
             gantt.refreshData();
         });

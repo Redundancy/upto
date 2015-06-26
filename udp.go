@@ -1,12 +1,13 @@
+//go:generate msgp
 package main
 
 import "fmt"
 
 // UDPMessage is a binary serializable message for UDP
 type UDPMessage struct {
-	Name EventName
-	Type MessageType
-	Time int64
+	Name EventName   `msg:"name"`
+	Type MessageType `msg:"type"`
+	Time int64       `msg:"time"`
 }
 
 // MessageType is used to indicate the difference between a start and end event
@@ -37,17 +38,6 @@ func (m MessageType) String() string {
 // EventName is a binary serialized list of UTF8 strings separated by '.'
 // It includes a 2 byte length at the start
 type EventName []string
-
-// MarshalBinary implements encoding.BinaryMarshaler
-func (e EventName) MarshalBinary() (data []byte, err error) {
-	return
-}
-
-// UnmarshalBinary implements encoding.BinaryUnmarshaler
-func (e EventName) UnmarshalBinary(data []byte) error {
-
-	return nil
-}
 
 func udpMessage(message []byte) {
 	fmt.Print("Message:", string(message))
