@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <script src="bower_components/jquery/dist/jquery.min.js"></script>
+   <script src="bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
+   <link href="bower_components/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+   <script src="bower_components/gantt/codebase/dhtmlxgantt.js"></script>
+   <script src="bower_components/gantt/codebase/ext/dhtmlxgantt_tooltip.js"></script>
+   <link href="bower_components/gantt/codebase/dhtmlxgantt.css" rel="stylesheet">
+</head>
+<body>
+    <h1>Upto</h1>
+
+    <h2>Server Update</h2>
+    <div id="gantt_here" style='width:100%; height:400px;'></div>
+    <script type="text/javascript">
+        // http://docs.dhtmlx.com/gantt/desktop__date_format.html
+        gantt.config.scale_unit = "minute";
+        gantt.config.date_scale = "%H:%i";
+        gantt.config.show_task_cells = false;
+        gantt.config.show_grid = false;
+        gantt.config.readonly = true;
+        gantt.config.drag_links = false;
+
+        function addMinutes(date, minutes) {
+            return new Date(date.getTime() + minutes*60000);
+        }
+
+        gantt.config.start_date = new Date();
+        gantt.config.end_date = addMinutes(new Date(), 20);
+
+        //gantt.config.autosize = "xy";
+        gantt.config.subscales = [
+            {unit:"day", step:1, date:"%D %M %d" }
+        ];
+
+        gantt.templates.tooltip_text = function(start,end,task){
+            return "<b>Task:</b> "+task.text+"<br/><b>Duration:</b> " + (task.custom_duration / 1000) + "s";
+        };
+
+        gantt.init("gantt_here");
+
+        $.getJSON( "/api/contexts/server_startup/1", function( data ) {
+            var i = 0;
+
+            var arrayLength = data.Events.length;
+            for (var i = 0; i < arrayLength; i++) {
+                var e = data.Events[i];
+
+                var name = e.Name;
+                if (e.Host !== "" && e.Host !== undefined) {
+                    name += " (" + e.Host + ")";
+                }
+
+                var start =  Date.parse(e.Start);
+                var end = Date.parse(e.End);
+                gantt.addTask({
+                    id: i+1,
+                    text: name,
+                    start_date: start,
+                    end_date:  end,
+                    custom_duration: end-start
+                });
+            }
+            gantt.refreshData();
+        });
+
+    </script>
+</body>
+</html>

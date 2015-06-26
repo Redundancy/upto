@@ -1,0 +1,19 @@
+{
+  "name": "upto",
+  "version": "0.0.0",
+  "homepage": "https://github.com/Redundancy/upto",
+  "description": "upto html interface",
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "jQuery": "~2.1.4",
+    "gantt": "~3.2.1",
+    "bootstrap": "~3.3.5"
+  }
+}
