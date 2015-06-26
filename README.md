@@ -16,7 +16,7 @@ The name is based on the question, "what is it up to?" and it is inspired by wor
 on two projects, one involving many tools, and the other being a build system that
 required timings for sub-job level items.
 
-![Example](Redundancy.github.com/upto/content/example.png)
+![Example](content/example.png)
 
 ## Status - In Development (not ready for any use)
 - [ ] Mock API for designing REST interface
