@@ -1,13 +1,18 @@
 //go:generate msgp
-package main
+package message
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 // UDPMessage is a binary serializable message for UDP
 type UDPMessage struct {
-	Name EventName   `msg:"name"`
-	Type MessageType `msg:"type"`
-	Time int64       `msg:"time"`
+	Context string      `msg:"context"`
+	Name    EventName   `msg:"name"`
+	Type    MessageType `msg:"type"`
+	Time    time.Time   `msg:"time"`
+	Host    string      `msg:"host"`
 }
 
 // MessageType is used to indicate the difference between a start and end event
@@ -20,7 +25,28 @@ const (
 	MessageEndEvent
 	// MessageSingleEvent should be used to indicate a point-in-time event
 	MessageSingleEvent
+	// MessageNewContextInstance Start a new context instance
+	MessageNewTimeline
 )
+
+type MessageParseError string
+
+func (m MessageParseError) Error() string {
+	return "Message \"" + string(m) + "\" could not be parsed"
+}
+
+func ParseMessageType(s string) (MessageType, error) {
+	switch s {
+	case "MessageStartEvent":
+		return MessageStartEvent, nil
+	case "MessageEndEvent":
+		return MessageEndEvent, nil
+	case "MessageSingleEvent":
+		return MessageSingleEvent, nil
+	default:
+		return 0, MessageParseError(s)
+	}
+}
 
 func (m MessageType) String() string {
 	switch m {
@@ -30,6 +56,8 @@ func (m MessageType) String() string {
 		return "MessageEndEvent"
 	case MessageSingleEvent:
 		return "MessageSingleEvent"
+	case MessageNewTimeline:
+		return "MessageNewTimeline"
 	default:
 		return fmt.Sprintf("Unknown MessageType! <%v>", int(m))
 	}
@@ -38,7 +66,3 @@ func (m MessageType) String() string {
 // EventName is a binary serialized list of UTF8 strings separated by '.'
 // It includes a 2 byte length at the start
 type EventName []string
-
-func udpMessage(message []byte) {
-	fmt.Print("Message:", string(message))
-}

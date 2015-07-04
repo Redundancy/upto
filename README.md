@@ -21,14 +21,48 @@ required timings for sub-job level items.
 ## Status - In Development (not ready for any use)
 - [ ] Mock API for designing REST interface
  - [ ] HAL / HATEOAS evaluation
-- [ ] UDP binary format
+- [x] UDP binary format (alpha)
+- [ ] HTTP event API
+- [ ] UDP format spec
 - [ ] Web Interface mk. 1
 - [ ] Agent & polling for upto servers behind firewalls
-- [ ] CLI for commandline usage
+- [x] CLI for commandline usage
 - [ ] Persistence interfaces
  - [ ] Bolt local database implementation
  - [ ] Redis implementation
  - [ ] SQL interface wrapper
+
+## Concepts
+#### Context
+A Context is a collection of similar sets of event timings:
+* A service deployment
+* A build process
+
+Two different contexts can have overlapping timelines.
+The context must be known and set by the client sending events.
+
+#### Timeline
+A timeline is a unique set of events that are tracked together within a context.
+Examples would be build events for a particular build number, or events for a deployment.
+
+If it makes sense to compare two different ones, or does not make sense to see them
+together, you create a new timeline.
+
+Only the newest timeline in a context is active and automatically has events added to it.
+The main reason for this is so that systems submitting events may be unaware of
+the timeline being used, rather than needing to pass it around as a variable or parameter.
+
+#### Event
+An event is a task that *usually* has a duration. Events are organized into
+a hierarchy based on naming: "ancestor.parent.eventname" where ancestors have a
+duration implied by the start of the first descendant, and the end of the last descendant.
+
+Events may also optionally be tied to specific hosts. This is the only case where
+events may share the same name, and the combination of event name and host must
+be unique.
+
+Events are sent as start and stop events seperately.
+There is no onus on the client to track duration.
 
 ## API
 
@@ -40,6 +74,21 @@ but may be replaced with something else.
 
 **NB:** The very first version of the API will be a mock implementation intended to
 flesh out the API design for the interface, rather than a functional implementation.
+
+## Transport
+
+The UDP transport is expected to be preferred. If the server is unavailable, events
+will simply be lost at no cost to the client execution.
+
+The expectation is that the data transmitted is of very low sensitivity, so the
+transport is not secured.
+
+If the HTTP API was used, putting it behind SSL using a trusted HTTPS termination
+proxy would be the preferred setup if security is needed.
+
+## Distributed setup
+
+If an appropriate backing datastore is used, then upto is expected to behave statelessly.
 
 ## CLI
 

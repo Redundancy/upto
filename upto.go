@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/Redundancy/upto/message"
 	"github.com/codegangsta/cli"
 )
 
@@ -19,7 +20,7 @@ var mux = http.NewServeMux()
 func main() {
 
 	// start UDP server
-	serverAddr, _ := net.ResolveUDPAddr("udp", "127.0.0.1:8000")
+	serverAddr, _ := net.ResolveUDPAddr("udp", ":8123")
 	udpServer, err := net.ListenUDP("udp", serverAddr)
 
 	if err != nil {
@@ -50,7 +51,7 @@ func main() {
 				// don't wait
 			}
 
-			n, err := udpServer.Read(buffer)
+			n, remote, err := udpServer.ReadFrom(buffer)
 
 			if err != nil {
 				switch e := err.(type) {
@@ -66,6 +67,7 @@ func main() {
 				}
 			}
 
+			println(remote.String())
 			udpMessage(buffer[:n])
 		}
 	}()
@@ -84,13 +86,11 @@ func main() {
 		return
 	}()
 
-	/*
-		localAddr, _ := net.ResolveUDPAddr("udp", "127.0.0.1:8001")
-
-		con, _ := net.DialUDP("udp", localAddr, serverAddr)
-		con.Write([]byte("hello\n"))
-		con.Write([]byte("hello\n"))
-	*/
-
 	<-waiter
+}
+
+func udpMessage(buffer []byte) {
+	m := &message.UDPMessage{}
+	m.UnmarshalMsg(buffer)
+	fmt.Printf("Message: %#v\n", m)
 }
