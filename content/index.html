@@ -50,7 +50,7 @@
 
         var tasks = {};
 
-        $.getJSON( "/api/contexts/server_startup/1", function( data ) {
+        $.getJSON( "/api/contexts/test/1", function( data ) {
             var taskID = 1;
 
             var arrayLength = data.Events.length;
@@ -122,5 +122,7 @@
         });
 
     </script>
+
+<a href="/api">api</a>
 </body>
 </html>

@@ -3,16 +3,18 @@ package message
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
 // UDPMessage is a binary serializable message for UDP
 type UDPMessage struct {
-	Context string      `msg:"context"`
-	Name    EventName   `msg:"name"`
-	Type    MessageType `msg:"type"`
-	Time    time.Time   `msg:"time"`
-	Host    string      `msg:"host"`
+	Context        string      `msg:"context"`
+	Name           EventName   `msg:"name"`
+	Type           MessageType `msg:"type"`
+	Time           time.Time   `msg:"time"`
+	Host           string      `msg:"host"`
+	FillHostWithIP bool        `msg:"autoIP"`
 }
 
 // MessageType is used to indicate the difference between a start and end event
@@ -66,3 +68,7 @@ func (m MessageType) String() string {
 // EventName is a binary serialized list of UTF8 strings separated by '.'
 // It includes a 2 byte length at the start
 type EventName []string
+
+func (e EventName) String() string {
+	return strings.Join([]string(e), ".")
+}

@@ -65,6 +65,11 @@ func (z *UDPMessage) DecodeMsg(dc *msgp.Reader) (err error) {
 			if err != nil {
 				return
 			}
+		case "autoIP":
+			z.FillHostWithIP, err = dc.ReadBool()
+			if err != nil {
+				return
+			}
 		default:
 			err = dc.Skip()
 			if err != nil {
@@ -77,8 +82,8 @@ func (z *UDPMessage) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z *UDPMessage) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 5
-	err = en.Append(0x85)
+	// map header, size 6
+	err = en.Append(0x86)
 	if err != nil {
 		return err
 	}
@@ -133,14 +138,23 @@ func (z *UDPMessage) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
+	// write "autoIP"
+	err = en.Append(0xa6, 0x61, 0x75, 0x74, 0x6f, 0x49, 0x50)
+	if err != nil {
+		return err
+	}
+	err = en.WriteBool(z.FillHostWithIP)
+	if err != nil {
+		return
+	}
 	return
 }
 
 // MarshalMsg implements msgp.Marshaler
 func (z *UDPMessage) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 5
-	o = append(o, 0x85)
+	// map header, size 6
+	o = append(o, 0x86)
 	// string "context"
 	o = append(o, 0xa7, 0x63, 0x6f, 0x6e, 0x74, 0x65, 0x78, 0x74)
 	o = msgp.AppendString(o, z.Context)
@@ -159,6 +173,9 @@ func (z *UDPMessage) MarshalMsg(b []byte) (o []byte, err error) {
 	// string "host"
 	o = append(o, 0xa4, 0x68, 0x6f, 0x73, 0x74)
 	o = msgp.AppendString(o, z.Host)
+	// string "autoIP"
+	o = append(o, 0xa6, 0x61, 0x75, 0x74, 0x6f, 0x49, 0x50)
+	o = msgp.AppendBool(o, z.FillHostWithIP)
 	return
 }
 
@@ -219,6 +236,11 @@ func (z *UDPMessage) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			if err != nil {
 				return
 			}
+		case "autoIP":
+			z.FillHostWithIP, bts, err = msgp.ReadBoolBytes(bts)
+			if err != nil {
+				return
+			}
 		default:
 			bts, err = msgp.Skip(bts)
 			if err != nil {
@@ -235,7 +257,7 @@ func (z *UDPMessage) Msgsize() (s int) {
 	for xvk := range z.Name {
 		s += msgp.StringPrefixSize + len(z.Name[xvk])
 	}
-	s += 5 + msgp.IntSize + 5 + msgp.TimeSize + 5 + msgp.StringPrefixSize + len(z.Host)
+	s += 5 + msgp.IntSize + 5 + msgp.TimeSize + 5 + msgp.StringPrefixSize + len(z.Host) + 7 + msgp.BoolSize
 	return
 }
 
