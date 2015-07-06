@@ -109,6 +109,8 @@ var testTimelines = map[string][]Event{
 
 type TimelineResponse struct {
 	*HalResponse
+	First  time.Time
+	Last   time.Time
 	Events []Event
 }
 
@@ -126,6 +128,18 @@ func getTimeline(w rest.ResponseWriter, req *rest.Request) {
 			rest.NotFound(w, req)
 			return
 		} else {
+			for _, e := range events {
+				if !re.Last.After(e.End) {
+					re.Last = e.End
+				}
+			}
+			re.First = re.Last
+			for _, e := range events {
+				if !re.First.Before(e.Start) {
+					re.First = e.Start
+				}
+			}
+
 			re.Events = events
 			rw.WriteJSONResponse(req.URL, re)
 		}

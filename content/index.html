@@ -14,6 +14,8 @@
     <h2>Server Update</h2>
     <div id="gantt_here" style='width:100%; height:400px;'></div>
     <script type="text/javascript">
+        var timelineURL = "/api/contexts/test/1";
+
         // http://docs.dhtmlx.com/gantt/desktop__date_format.html
         gantt.config.scale_unit = "minute";
         gantt.config.date_scale = "%H:%i";
@@ -30,8 +32,8 @@
             return new Date(date.getTime() + minutes*60000);
         }
 
-        gantt.config.start_date = new Date();
-        gantt.config.end_date = addMinutes(new Date(), 20);
+        //gantt.config.start_date = new Date();
+        //gantt.config.end_date = addMinutes(new Date(), 20);
 
         //gantt.config.autosize = "y";
 
@@ -39,19 +41,30 @@
             {unit:"day", step:1, date:"%D %M %d" }
         ];
 
-        gantt.templates.tooltip_text = function(start,end,task){
+        gantt.templates.tooltip_text = function(start, end, task){
+            if (!(start instanceof Date)) {
+                start = new Date(start);
+            }
+            if (!(end instanceof Date)) {
+                end = new Date(end);
+            }
+
             return  "<b>Task:</b> " + task.text + "<br/>" +
                     "<b>Duration:</b> " + ((task.end_date - task.start_date) / 1000) + "s<br/>" +
-                    "<b>Start:</b> " + task.start_date + "<br/>" +
-                    "<b>End:</b> " + task.end_date + "<br/>";
+                    "<b>Start:</b> " + start.toUTCString() + "<br/>" +
+                    "<b>End:</b> " + end.toUTCString() + "<br/>";
         };
 
-        gantt.init("gantt_here");
+
 
         var tasks = {};
 
-        $.getJSON( "/api/contexts/test/1", function( data ) {
+        $.getJSON( timelineURL, function( data ) {
             var taskID = 1;
+
+            gantt.config.start_date = data.First;
+            gantt.config.end_date = data.Last;
+            gantt.init("gantt_here");
 
             var arrayLength = data.Events.length;
             for (var i = 0; i < arrayLength; i++) {
@@ -123,6 +136,10 @@
 
     </script>
 
+<a id=timeline-api href="">data</a>
+<script>
+$("#timeline-api").attr("href",timelineURL);
+</script>
 <a href="/api">api</a>
 </body>
 </html>
