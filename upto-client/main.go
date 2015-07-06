@@ -45,11 +45,12 @@ func SendState(c *cli.Context, messageType message.MessageType) {
 	eventName := c.Args()[1]
 
 	m := &message.UDPMessage{
-		Context: context,
-		Name:    strings.Split(eventName, "."),
-		Type:    messageType,
-		Time:    time.Now(),
-		Host:    hostname,
+		Context:        context,
+		Name:           strings.Split(eventName, "."),
+		Type:           messageType,
+		Time:           time.Now(),
+		Host:           hostname,
+		FillHostWithIP: c.GlobalBool("i"),
 	}
 
 	err = sendmessage(m, destination)
@@ -166,6 +167,10 @@ func main() {
 		cli.BoolFlag{
 			Name:  "autohost, a",
 			Usage: "determine and fill in the host field automatically",
+		},
+		cli.BoolFlag{
+			Name:  "autoip, i",
+			Usage: "upto server/agent will resolve this machine's IP automatically",
 		},
 	}
 

@@ -67,8 +67,11 @@ func main() {
 				}
 			}
 
-			println(remote.String())
-			udpMessage(buffer[:n])
+			if udpAddr, ok := remote.(*net.UDPAddr); ok {
+				receiveUDPMessage(udpAddr.IP.String(), buffer[:n])
+			} else {
+				receiveUDPMessage(remote.String(), buffer[:n])
+			}
 		}
 	}()
 
@@ -89,8 +92,12 @@ func main() {
 	<-waiter
 }
 
-func udpMessage(buffer []byte) {
+func receiveUDPMessage(ip string, buffer []byte) {
 	m := &message.UDPMessage{}
 	m.UnmarshalMsg(buffer)
+
+	if m.FillHostWithIP {
+		m.Host = ip
+	}
 	fmt.Printf("Message: %#v\n", m)
 }
