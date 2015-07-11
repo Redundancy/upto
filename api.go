@@ -8,6 +8,10 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 )
 
+const (
+	currentFolderPrefix = ""
+)
+
 // TODO: put a shim REST API here to implement a
 func init() {
 	api := rest.NewApi()
@@ -30,7 +34,7 @@ func init() {
 func rootHandler(w rest.ResponseWriter, req *rest.Request) {
 	rw := halResponseWriter{w}
 	re := MakeHalResponse()
-	re.Links["contexts"] = SimpleHREF("./contexts")
+	re.Links["contexts"] = SimpleHREF("contexts")
 
 	rw.WriteJSONResponse(req.URL, re)
 }
@@ -39,10 +43,18 @@ func getContexts(w rest.ResponseWriter, req *rest.Request) {
 	rw := halResponseWriter{w}
 	re := MakeHalResponse()
 
-	re.Links["items"] = []SimpleHREF{
-		"./test",
+	items := []SimpleHREF{
+		currentFolderPrefix + "test",
 	}
 
+	for _, context := range datastore.ListContexts() {
+		items = append(
+			items,
+			SimpleHREF(context),
+		)
+	}
+
+	re.Links["items"] = items
 	rw.WriteJSONResponse(req.URL, re)
 }
 
@@ -62,12 +74,29 @@ func getContext(w rest.ResponseWriter, req *rest.Request) {
 
 	if req.PathParam("context") == "test" {
 		for n, _ := range testTimelines {
-			timelines = append(timelines, SimpleHREF("./"+n))
+			timelines = append(
+				timelines,
+				SimpleHREF(currentFolderPrefix+n),
+			)
+
+			re.Links["latest"] = SimpleHREF(currentFolderPrefix + n)
+		}
+	} else {
+		tls := datastore.ListContextTimelines(re.Name)
+		for _, timeline := range tls {
+			timelines = append(
+				timelines,
+				SimpleHREF(currentFolderPrefix+timeline),
+			)
+		}
+
+		latest := datastore.GetLatestTimeline(re.Name)
+		if latest != "" {
+			re.Links["latest"] = SimpleHREF(currentFolderPrefix + latest)
 		}
 	}
-	re.Links["latest"] = SimpleHREF("./1")
-	re.Links["items"] = timelines
 
+	re.Links["items"] = timelines
 	rw.WriteJSONResponse(req.URL, re)
 }
 
@@ -104,14 +133,46 @@ var testTimelines = map[string][]Event{
 			End:   testNow.Add(time.Minute * 6),
 		},
 	},
-	"2": []Event{},
+	"2": []Event{
+		{
+			Name:  "a.b",
+			Start: testNow,
+			End:   testNow.Add(time.Minute),
+		},
+		{
+			Name:  "a.c.d.e",
+			Start: testNow.Add(time.Minute),
+			End:   testNow.Add(time.Minute * 2),
+		},
+		{
+			Name:  "a.c.d.f",
+			Start: testNow.Add(time.Minute * 2),
+			End:   testNow.Add(time.Minute * 3),
+		},
+	},
 }
 
 type TimelineResponse struct {
 	*HalResponse
-	First  time.Time
-	Last   time.Time
-	Events []Event
+	First  time.Time `json:",omitempty"`
+	Last   time.Time `json:",omitempty"`
+	Events []Event   `json:",omitempty"`
+}
+
+func (tr *TimelineResponse) updateFirstLast() {
+	for _, e := range tr.Events {
+		if !tr.Last.After(e.End) {
+			tr.Last = e.End
+		}
+	}
+
+	tr.First = tr.Last
+
+	for _, e := range tr.Events {
+		if !tr.First.Before(e.Start) {
+			tr.First = e.Start
+		}
+	}
 }
 
 func getTimeline(w rest.ResponseWriter, req *rest.Request) {
@@ -128,20 +189,30 @@ func getTimeline(w rest.ResponseWriter, req *rest.Request) {
 			rest.NotFound(w, req)
 			return
 		} else {
-			for _, e := range events {
-				if !re.Last.After(e.End) {
-					re.Last = e.End
-				}
-			}
-			re.First = re.Last
-			for _, e := range events {
-				if !re.First.Before(e.Start) {
-					re.First = e.Start
-				}
-			}
-
 			re.Events = events
+			re.updateFirstLast()
 			rw.WriteJSONResponse(req.URL, re)
 		}
+	} else {
+		if !datastore.ContextExists(context) {
+			rest.NotFound(w, req)
+			return
+		}
+
+		events := datastore.GetTimelineEvents(context, timeline)
+		for _, event := range events {
+			re.Events = append(
+				re.Events,
+				Event{
+					Name:  event.EventName,
+					Host:  event.Host,
+					Start: event.Start,
+					End:   event.End,
+				},
+			)
+		}
+
+		re.updateFirstLast()
+		rw.WriteJSONResponse(req.URL, re)
 	}
 }

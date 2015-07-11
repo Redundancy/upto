@@ -16,15 +16,20 @@ The name is based on the question, "what is it up to?" and it is inspired by wor
 on two projects, one involving many tools, and the other being a build system that
 required timings for sub-job level items.
 
+Upto is built to be a micro-service, solving a single problem in a manner that's
+decoupled and orthogonal to the use, or other solutions. You should be able to
+integrate it and benefit from it easily, without requiring huge changes or forcing
+many other choices on you.
+
 ![Example](content/example.png)
 
 ## Status - In Development (not ready for any use)
-- [ ] Mock API for designing REST interface
- - [ ] HAL / HATEOAS evaluation
+- [x] Mock API for designing REST interface
+ - [x] HAL / HATEOAS evaluation
 - [x] UDP binary format (alpha)
 - [ ] HTTP event API
 - [ ] UDP format spec
-- [ ] Web Interface mk. 1
+- [x] Web Interface mk. 1
 - [ ] Agent & polling for upto servers behind firewalls
 - [x] CLI for commandline usage
 - [ ] Persistence interfaces
@@ -61,7 +66,7 @@ Events may also optionally be tied to specific hosts. This is the only case wher
 events may share the same name, and the combination of event name and host must
 be unique.
 
-Events are sent as start and stop events seperately.
+Events are sent as start and stop events separately.
 There is no onus on the client to track duration.
 
 ## API
@@ -95,6 +100,35 @@ If an appropriate backing datastore is used, then upto is expected to behave sta
 The upto-client folder will have a CLI client implementation that could be used
 from within batch scripts, CI systems, packer provisioning scripts etc.
 
+For remote servers use:
+```
+upto-client --rh "servername" ...
+```
+Create a new timeline:
+```
+upto-client new "context"
+```
+Start an event using the IP that this machine uses to talk to the server:
+```
+upto-client -i start "context" "event"
+```
+Start an event without a hostname:
+```
+upto-client start "context" "event"
+```
+Start an event in an implicit hierarchy:
+```
+upto-client start "context" "ancestor.parent.event"
+```
+Start an event using the hostname of this machine uses to talk to the server:
+```
+upto-client -a start "context" "event"
+```
+End an event (format should match the start event, except for "end")
+```
+upto-client -i end "context" "event"
+```
+
 It should eventually be able to use both the HTTP and UDP APIs, but in some cases
 sending to an agent, and polling with Upto may be preferred.
 
@@ -103,7 +137,14 @@ sending to an agent, and polling with Upto may be preferred.
 I use bower to manage the dependencies for the web UI under the content folder.
 For development, this brings with it a dependency on Node.js
 
-To build upto, the following (or a variation) is standard:
-`call lgo build -ldflags "-X main.extraContentPath src/github.com/Redundancy/upto/content" github.com/Redundancy/upto`
-
+Here is my current (windows) build script:
+```
+@echo off
+go build -ldflags "-X main.extraContentPath src/github.com/Redundancy/upto/content" github.com/Redundancy/upto
+pushd src\github.com\Redundancy\upto\message
+go generate
+popd
+go build github.com/Redundancy/upto/upto-client
+```
+The steps for generating the MessagePack functions can be omitted unless you're changing the message package.
 This allows the webserver to default to serving content from the source folders when running from the parent folder of src

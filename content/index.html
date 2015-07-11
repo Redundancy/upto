@@ -2,22 +2,87 @@
 <html>
 <head>
    <script src="bower_components/jquery/dist/jquery.min.js"></script>
+   <script src="bower_components/url-join/lib/url-join.js"></script>
    <script src="bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
    <link href="bower_components/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+   <link href="bower_components/bootstrap/dist/css/bootstrap-theme.min.css" rel="stylesheet">
    <script src="bower_components/gantt/codebase/dhtmlxgantt.js"></script>
    <script src="bower_components/gantt/codebase/ext/dhtmlxgantt_tooltip.js"></script>
+
    <link href="bower_components/gantt/codebase/dhtmlxgantt.css" rel="stylesheet">
+   <script src="bower_components/react/react.js"></script>
+   <script src="bower_components/react/JSXTransformer.js"></script>
+   <script type="text/jsx" src="index.js"></script>
 </head>
 <body>
-    <h1>Upto</h1>
+<script type="text/javascript">
+dhtmlx.message = function(){};
+var timelineURL = "";
 
-    <h2>Server Update</h2>
+function onChoseTimeline(a, b) {
+    var url = urljoin("/api/contexts", a, b);
+    timelineURL = url;
+    loadData(url);
+    $("#timeline-api").attr("href", url);
+};
+
+function refresh() {
+    loadData(timelineURL);
+};
+</script>
+
+    <nav class="navbar navbar-default">
+      <div class="container-fluid">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="#">Upto</a>
+        </div>
+
+          <ul class="nav navbar-nav navbar-right">
+            <li><a href="#" onclick="refresh();return false;">Refresh</a></li>
+
+            <li class="dropdown">
+              <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Context <span class="caret"></span></a>
+              <ul class="dropdown-menu">
+                <li><a href="#">Action</a></li>
+                <li><a href="#">Another action</a></li>
+              </ul>
+            </li>
+
+            <li class="dropdown">
+              <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Timeline <span class="caret"></span></a>
+              <ul class="dropdown-menu">
+                <li><a href="#">Action</a></li>
+                <li><a href="#">Another action</a></li>
+              </ul>
+            </li>
+
+          </ul>
+        </div><!-- /.navbar-collapse -->
+      </div><!-- /.container-fluid -->
+    </nav>
+
+    <div id=context></div>
+
+    <script type="text/jsx">
+    React.render(
+        <ContextSelector url="/api/contexts" onChoseTimeline={onChoseTimeline}/>,
+        document.getElementById('context')
+    );
+    </script>
+    <br/><br/>
     <div id="gantt_here" style='width:100%; height:400px;'></div>
     <script type="text/javascript">
-        var timelineURL = "/api/contexts/test/1";
-
         // http://docs.dhtmlx.com/gantt/desktop__date_format.html
+        gantt.config.duration_unit = "minute";
         gantt.config.scale_unit = "minute";
+
         gantt.config.date_scale = "%H:%i";
         gantt.config.show_task_cells = false;
         //gantt.config.show_grid = false;
@@ -25,17 +90,13 @@
             {name:"text",       label:"Task name",  width:"*", tree:true },
         ];
 
+        gantt.config.round_dnd_dates = false;
         gantt.config.readonly = true;
         gantt.config.drag_links = false;
 
         function addMinutes(date, minutes) {
             return new Date(date.getTime() + minutes*60000);
         }
-
-        //gantt.config.start_date = new Date();
-        //gantt.config.end_date = addMinutes(new Date(), 20);
-
-        //gantt.config.autosize = "y";
 
         gantt.config.subscales = [
             {unit:"day", step:1, date:"%D %M %d" }
@@ -54,92 +115,108 @@
                     "<b>Start:</b> " + start.toUTCString() + "<br/>" +
                     "<b>End:</b> " + end.toUTCString() + "<br/>";
         };
+        gantt.init("gantt_here");
 
+        function loadData( url ) {
+            console.log("loading", url);
+            gantt.clearAll();
 
+            var getDataCall = $.getJSON( url, function( data ) {
+                var tasks = {};
+                var taskID = 1;
 
-        var tasks = {};
+                gantt.config.start_date = data.First - 60*1000;
+                gantt.config.end_date = data.Last + 60*1000;
 
-        $.getJSON( timelineURL, function( data ) {
-            var taskID = 1;
+                if (data.Events === undefined) {
+                    return;
+                }
 
-            gantt.config.start_date = data.First;
-            gantt.config.end_date = data.Last;
-            gantt.init("gantt_here");
+                var arrayLength = data.Events.length;
+                for (var i = 0; i < arrayLength; i++) {
+                    var e = data.Events[i];
+                    var name = e.Name;
+                    var parent = undefined;
 
-            var arrayLength = data.Events.length;
-            for (var i = 0; i < arrayLength; i++) {
-                var e = data.Events[i];
-                var name = e.Name;
-                var parent = undefined;
+                    if( name.includes(".") ) {
+                        //  {id:1, text:"Project #1",    type:gantt.config.types.project,    open:true}
+                        var heirarchy = name.split(".");
+                        var heirarchyLength = heirarchy.length;
+                        var lastParent = undefined;
+                        for (var x = 0; x < heirarchyLength-1; x++) {
+                            var parentName = heirarchy.slice(0,x+1).join(".");
 
-                if( name.includes(".") ) {
-                    //  {id:1, text:"Project #1",    type:gantt.config.types.project,    open:true}
-                    var heirarchy = name.split(".");
-                    var heirarchyLength = heirarchy.length;
-                    var lastParent = undefined;
-                    for (var x = 0; x < heirarchyLength-1; x++) {
-                        var parentName = heirarchy.slice(0,x+1).join(".");
+                            if (parentName in tasks) {
+                                lastParent = tasks[parentName];
+                                parent = lastParent;
+                                continue;
+                            } else {
+                                newParent = {
+                                    id:     taskID,
+                                    text:   heirarchy[x],
+                                    type:   gantt.config.types.project,
+                                    open:   true,
+                                    color:  "blue"
+                                };
 
-                        if (parentName in tasks) {
-                            lastParent = tasks[parentName];
-                            parent = lastParent;
-                            continue;
-                        } else {
-                            newParent = {
-                                id:     taskID,
-                                text:   heirarchy[x],
-                                type:   gantt.config.types.project,
-                                open:   true,
-                                color:  "blue"
-                            };
+                                if (lastParent !== undefined) {
+                                    newParent["parent"] = lastParent.id;
+                                }
 
-                            if (lastParent !== undefined) {
-                                newParent["parent"] = lastParent.id;
+                                gantt.addTask(newParent);
+                                tasks[parentName] = newParent.id;
+                                lastParent = newParent;
+                                taskID += 1;
+                                parent = lastParent.id;
                             }
-
-                            gantt.addTask(newParent);
-                            tasks[parentName] = newParent.id;
-                            lastParent = newParent;
-                            taskID += 1;
-                            parent = lastParent.id;
                         }
+
+                        name = heirarchy[heirarchyLength-1];
                     }
 
-                    name = heirarchy[heirarchyLength-1];
+                    if (e.Host !== "" && e.Host !== undefined) {
+                        name += " (" + e.Host + ")";
+                    }
+
+                    var start = new Date(Date.parse(e.Start));
+                    var end = new Date(Date.parse(e.End));
+
+                    /*if(end - start < 1000) {
+                        console.log(start, end);
+                        end = start + 1000;
+                    }*/
+
+                    var newTask = {
+                        id: taskID,
+                        text: name,
+                        start_date: start,
+                        end_date:  end,
+                        custom_duration: end-start
+                    };
+
+                    taskID += 1;
+
+                    if (parent !== undefined) {
+                        newTask["parent"] = parent;
+                    }
+                    tasks[name] = newTask.id;
+                    gantt.addTask(newTask);
                 }
 
-                if (e.Host !== "" && e.Host !== undefined) {
-                    name += " (" + e.Host + ")";
-                }
-
-                var start =  Date.parse(e.Start);
-                var end = Date.parse(e.End);
-
-                var newTask = {
-                    id: taskID,
-                    text: name,
-                    start_date: start,
-                    end_date:  end,
-                    custom_duration: end-start
-                };
-
-                taskID += 1;
-
-                if (parent !== undefined) {
-                    newTask["parent"] = parent;
-                }
-                tasks[name] = newTask.id;
-                gantt.addTask(newTask);
+                // sort earliest first
+                gantt.sort("start_date", false);
+                gantt.render();
             }
-            gantt.refreshData();
-        });
+        );
+
+        getDataCall.fail(function(){
+
+        })
+    };
 
     </script>
 
 <a id=timeline-api href="">data</a>
-<script>
-$("#timeline-api").attr("href",timelineURL);
-</script>
 <a href="/api">api</a>
 </body>
 </html>

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/Redundancy/upto/message"
@@ -46,7 +45,7 @@ func SendState(c *cli.Context, messageType message.MessageType) {
 
 	m := &message.UDPMessage{
 		Context:        context,
-		Name:           strings.Split(eventName, "."),
+		Name:           eventName,
 		Type:           messageType,
 		Time:           time.Now(),
 		Host:           hostname,
@@ -118,9 +117,7 @@ func main() {
 			Aliases: []string{"n"},
 			Usage: "Create a new context instance. Usually done before a deployment etc." +
 				" Will also create the context if needed.",
-			Action: func(c *cli.Context) {
-				println("added task: ", c.Args().First())
-			},
+			Action: CreateTimelineAndContext,
 		},
 		{
 			Name:    "start",

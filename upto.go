@@ -9,15 +9,20 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/Redundancy/upto/message"
+	"github.com/Redundancy/upto/store"
 	"github.com/codegangsta/cli"
 )
 
 var app = cli.NewApp()
-var extraContentPath string
+var extraContentPath string = "./content/"
 var mux = http.NewServeMux()
 
+var datastore store.UptoDataStore
+
 func main() {
+
+	var handler = &BinaryMessageHandler{}
+	datastore = &SimpleMemoryStore{}
 
 	// start UDP server
 	serverAddr, _ := net.ResolveUDPAddr("udp", ":8123")
@@ -39,7 +44,8 @@ func main() {
 
 	Messages:
 		for {
-			if err = udpServer.SetDeadline(time.Now().Add(time.Second)); err != nil {
+			oneSecondFromNow := time.Now().Add(time.Second)
+			if err = udpServer.SetDeadline(oneSecondFromNow); err != nil {
 				fmt.Fprint(os.Stderr, err)
 				return
 			}
@@ -67,21 +73,29 @@ func main() {
 				}
 			}
 
-			if udpAddr, ok := remote.(*net.UDPAddr); ok {
-				receiveUDPMessage(udpAddr.IP.String(), buffer[:n])
-			} else {
-				receiveUDPMessage(remote.String(), buffer[:n])
+			var ip string
+
+			switch t := remote.(type) {
+			case *net.UDPAddr:
+				ip = t.IP.String()
+			default:
+				ip = t.String()
 			}
+
+			handler.ReceiveMessage(datastore, ip, buffer[:n])
 		}
 	}()
 
 	// start HTTP server
 	go func() {
-		mux.Handle("/", http.FileServer(http.Dir(extraContentPath)))
+		d := http.Dir(extraContentPath)
+		fs := http.FileServer(d)
+		log.Println("Serving content from", extraContentPath)
+		mux.Handle("/", fs)
 
 		log.Println(
 			http.ListenAndServe(
-				"localhost:8080",
+				":8080",
 				mux,
 			),
 		)
@@ -90,14 +104,4 @@ func main() {
 	}()
 
 	<-waiter
-}
-
-func receiveUDPMessage(ip string, buffer []byte) {
-	m := &message.UDPMessage{}
-	m.UnmarshalMsg(buffer)
-
-	if m.FillHostWithIP {
-		m.Host = ip
-	}
-	fmt.Printf("Message: %#v\n", m)
 }

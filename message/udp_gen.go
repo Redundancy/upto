@@ -9,6 +9,54 @@ import (
 )
 
 // DecodeMsg implements msgp.Decodable
+func (z *MessageParseError) DecodeMsg(dc *msgp.Reader) (err error) {
+	{
+		var tmp string
+		tmp, err = dc.ReadString()
+		(*z) = MessageParseError(tmp)
+	}
+	if err != nil {
+		return
+	}
+	return
+}
+
+// EncodeMsg implements msgp.Encodable
+func (z MessageParseError) EncodeMsg(en *msgp.Writer) (err error) {
+	err = en.WriteString(string(z))
+	if err != nil {
+		return
+	}
+	return
+}
+
+// MarshalMsg implements msgp.Marshaler
+func (z MessageParseError) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, z.Msgsize())
+	o = msgp.AppendString(o, string(z))
+	return
+}
+
+// UnmarshalMsg implements msgp.Unmarshaler
+func (z *MessageParseError) UnmarshalMsg(bts []byte) (o []byte, err error) {
+	{
+		var tmp string
+		tmp, bts, err = msgp.ReadStringBytes(bts)
+		(*z) = MessageParseError(tmp)
+	}
+	if err != nil {
+		return
+	}
+	o = bts
+	return
+}
+
+func (z MessageParseError) Msgsize() (s int) {
+	s = msgp.StringPrefixSize + len(string(z))
+	return
+}
+
+// DecodeMsg implements msgp.Decodable
 func (z *UDPMessage) DecodeMsg(dc *msgp.Reader) (err error) {
 	var field []byte
 	_ = field
@@ -30,21 +78,9 @@ func (z *UDPMessage) DecodeMsg(dc *msgp.Reader) (err error) {
 				return
 			}
 		case "name":
-			var xsz uint32
-			xsz, err = dc.ReadArrayHeader()
+			z.Name, err = dc.ReadString()
 			if err != nil {
 				return
-			}
-			if cap(z.Name) >= int(xsz) {
-				z.Name = z.Name[:xsz]
-			} else {
-				z.Name = make(EventName, xsz)
-			}
-			for xvk := range z.Name {
-				z.Name[xvk], err = dc.ReadString()
-				if err != nil {
-					return
-				}
 			}
 		case "type":
 			{
@@ -101,15 +137,9 @@ func (z *UDPMessage) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return err
 	}
-	err = en.WriteArrayHeader(uint32(len(z.Name)))
+	err = en.WriteString(z.Name)
 	if err != nil {
 		return
-	}
-	for xvk := range z.Name {
-		err = en.WriteString(z.Name[xvk])
-		if err != nil {
-			return
-		}
 	}
 	// write "type"
 	err = en.Append(0xa4, 0x74, 0x79, 0x70, 0x65)
@@ -160,10 +190,7 @@ func (z *UDPMessage) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.AppendString(o, z.Context)
 	// string "name"
 	o = append(o, 0xa4, 0x6e, 0x61, 0x6d, 0x65)
-	o = msgp.AppendArrayHeader(o, uint32(len(z.Name)))
-	for xvk := range z.Name {
-		o = msgp.AppendString(o, z.Name[xvk])
-	}
+	o = msgp.AppendString(o, z.Name)
 	// string "type"
 	o = append(o, 0xa4, 0x74, 0x79, 0x70, 0x65)
 	o = msgp.AppendInt(o, int(z.Type))
@@ -201,21 +228,9 @@ func (z *UDPMessage) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				return
 			}
 		case "name":
-			var xsz uint32
-			xsz, bts, err = msgp.ReadArrayHeaderBytes(bts)
+			z.Name, bts, err = msgp.ReadStringBytes(bts)
 			if err != nil {
 				return
-			}
-			if cap(z.Name) >= int(xsz) {
-				z.Name = z.Name[:xsz]
-			} else {
-				z.Name = make(EventName, xsz)
-			}
-			for xvk := range z.Name {
-				z.Name[xvk], bts, err = msgp.ReadStringBytes(bts)
-				if err != nil {
-					return
-				}
 			}
 		case "type":
 			{
@@ -253,11 +268,7 @@ func (z *UDPMessage) UnmarshalMsg(bts []byte) (o []byte, err error) {
 }
 
 func (z *UDPMessage) Msgsize() (s int) {
-	s = 1 + 8 + msgp.StringPrefixSize + len(z.Context) + 5 + msgp.ArrayHeaderSize
-	for xvk := range z.Name {
-		s += msgp.StringPrefixSize + len(z.Name[xvk])
-	}
-	s += 5 + msgp.IntSize + 5 + msgp.TimeSize + 5 + msgp.StringPrefixSize + len(z.Host) + 7 + msgp.BoolSize
+	s = 1 + 8 + msgp.StringPrefixSize + len(z.Context) + 5 + msgp.StringPrefixSize + len(z.Name) + 5 + msgp.IntSize + 5 + msgp.TimeSize + 5 + msgp.StringPrefixSize + len(z.Host) + 7 + msgp.BoolSize
 	return
 }
 
@@ -306,129 +317,5 @@ func (z *MessageType) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 func (z MessageType) Msgsize() (s int) {
 	s = msgp.IntSize
-	return
-}
-
-// DecodeMsg implements msgp.Decodable
-func (z *MessageParseError) DecodeMsg(dc *msgp.Reader) (err error) {
-	{
-		var tmp string
-		tmp, err = dc.ReadString()
-		(*z) = MessageParseError(tmp)
-	}
-	if err != nil {
-		return
-	}
-	return
-}
-
-// EncodeMsg implements msgp.Encodable
-func (z MessageParseError) EncodeMsg(en *msgp.Writer) (err error) {
-	err = en.WriteString(string(z))
-	if err != nil {
-		return
-	}
-	return
-}
-
-// MarshalMsg implements msgp.Marshaler
-func (z MessageParseError) MarshalMsg(b []byte) (o []byte, err error) {
-	o = msgp.Require(b, z.Msgsize())
-	o = msgp.AppendString(o, string(z))
-	return
-}
-
-// UnmarshalMsg implements msgp.Unmarshaler
-func (z *MessageParseError) UnmarshalMsg(bts []byte) (o []byte, err error) {
-	{
-		var tmp string
-		tmp, bts, err = msgp.ReadStringBytes(bts)
-		(*z) = MessageParseError(tmp)
-	}
-	if err != nil {
-		return
-	}
-	o = bts
-	return
-}
-
-func (z MessageParseError) Msgsize() (s int) {
-	s = msgp.StringPrefixSize + len(string(z))
-	return
-}
-
-// DecodeMsg implements msgp.Decodable
-func (z *EventName) DecodeMsg(dc *msgp.Reader) (err error) {
-	var xsz uint32
-	xsz, err = dc.ReadArrayHeader()
-	if err != nil {
-		return
-	}
-	if cap((*z)) >= int(xsz) {
-		(*z) = (*z)[:xsz]
-	} else {
-		(*z) = make(EventName, xsz)
-	}
-	for bai := range *z {
-		(*z)[bai], err = dc.ReadString()
-		if err != nil {
-			return
-		}
-	}
-	return
-}
-
-// EncodeMsg implements msgp.Encodable
-func (z EventName) EncodeMsg(en *msgp.Writer) (err error) {
-	err = en.WriteArrayHeader(uint32(len(z)))
-	if err != nil {
-		return
-	}
-	for cmr := range z {
-		err = en.WriteString(z[cmr])
-		if err != nil {
-			return
-		}
-	}
-	return
-}
-
-// MarshalMsg implements msgp.Marshaler
-func (z EventName) MarshalMsg(b []byte) (o []byte, err error) {
-	o = msgp.Require(b, z.Msgsize())
-	o = msgp.AppendArrayHeader(o, uint32(len(z)))
-	for cmr := range z {
-		o = msgp.AppendString(o, z[cmr])
-	}
-	return
-}
-
-// UnmarshalMsg implements msgp.Unmarshaler
-func (z *EventName) UnmarshalMsg(bts []byte) (o []byte, err error) {
-	var xsz uint32
-	xsz, bts, err = msgp.ReadArrayHeaderBytes(bts)
-	if err != nil {
-		return
-	}
-	if cap((*z)) >= int(xsz) {
-		(*z) = (*z)[:xsz]
-	} else {
-		(*z) = make(EventName, xsz)
-	}
-	for ajw := range *z {
-		(*z)[ajw], bts, err = msgp.ReadStringBytes(bts)
-		if err != nil {
-			return
-		}
-	}
-	o = bts
-	return
-}
-
-func (z EventName) Msgsize() (s int) {
-	s = msgp.ArrayHeaderSize
-	for wht := range z {
-		s += msgp.StringPrefixSize + len(z[wht])
-	}
 	return
 }
